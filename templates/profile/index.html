@@ -1,0 +1,140 @@
+{% extends "template.html" %}
+{% block title %}Profile{% endblock %}
+{% block body %}
+    <nav class="navbar navbar-light bg-light justify-content-between">
+    <a class="navbar-brand">Profile: {{ username }}</a>
+    <div class="form-inline">
+        <button class="btn btn-success" onclick="create_logger()">Create logger</button>
+        <a href="{% url 'logout' %}"><button type="button" class="btn btn-primary"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-right" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"></path>
+        <path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"></path>
+            </svg> Log Out</button></a><br>
+    </div>
+    </nav>
+
+    <div class="modal fade" tabindex="-1" role="dialog" id="createLoggerModal">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Logger settings</h5>
+            <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+              <div class="mb-3">
+                  <select class="form-select" id="typeLogger" onchange="changedType()">
+                      <option selected>Select type of page</option>
+                      <option value="text">Text</option>
+                      <option value="url">URL Redirect</option>
+                      <option value="img">Image</option>
+                  </select>
+              </div>
+              <div class="mb-4" id="promtLogger">
+
+              </div>
+              <script>
+                  function changedType(){
+                      let selected_option   = document.getElementById("typeLogger");
+                      let selected_value    = selected_option.value;
+                      let edit_promt        = document.getElementById("promtLogger");
+                      switch (selected_value) {
+                          case "text":
+                              edit_promt.innerHTML = '<input id="asset_input" class="form-control" type="text" placeholder="Enter text" aria-label="default input">';
+                              break;
+                          case "url":
+                              edit_promt.innerHTML = '<input id="asset_input" oninput="urlChecker()" type="text" class="form-control" placeholder="Paste URL here" aria-label="default input">';
+                              break;
+                          case "img":
+                              edit_promt.innerHTML = '<div id="asset_input" class="input-group mb-3">  <input type="file" class="form-control" id="inputGroupFile02" accept=".png,.jpg,.jpeg" ><label class="input-group-text" for="inputGroupFile02">Upload</label></div>';
+                              break;
+                          default:
+                              edit_promt.innerHTML = "";
+                              break;
+                      }
+                  }
+                  function urlChecker(){
+                      let input_text = document.getElementById("asset_input").value;
+                      const isValidUrl = urlString=> {
+                          let url;
+                          try {
+                              url = new URL(urlString);
+                          }
+                          catch(e){
+                              return false;
+                          }
+                          return url.protocol === "http:" || url.protocol === "https:";
+                      }
+                      let edit_promt = document.getElementById("promtLogger");
+                      if(!isValidUrl(input_text)){
+                          if(!(edit_promt.innerHTML.includes('<p id="wrongUrl" class="text-danger">Wrong url</p>'))){
+                              edit_promt.innerHTML += '<p id="wrongUrl" class="text-danger">Wrong url</p>';
+                          }
+                      }
+                      if(isValidUrl(input_text)){
+                          document.getElementById("wrongUrl").remove();
+                      }
+                      console.log(isValidUrl(input_text));
+                  }
+
+              </script>
+              <button type="submit" class="btn btn-primary" onclick="createLoggerRequest()">Submit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <hr>
+    <table id = "loggersTable"class="table">
+    <thead>
+        <tr>
+            <th scope="col">Admin ID</th>
+            <th scope="col">Type</th>
+            <th scope="col">Points to:</th>
+            <th scope="col">Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in query_result %}
+            <tr id = "{{ item.admin_url }}">
+                <td><a href="{% url 'view_res' item.admin_url %}">{{ item.admin_url }}</a></td>
+                <td>{{ item.type }}</td>
+                {% if item.type == "img" %}
+                    <td>url</td>
+                {% else %}
+                    <td>{{ item.asset }}</td>
+                {% endif %}
+                <td><button type="button" class="btn btn-danger" onclick="remove_logger('{{ item.admin_url }}')">Remove</button></td>
+            </tr>
+        {% endfor %}
+    </tbody>
+    </table>
+    <script>
+        function create_logger(){
+            $("#createLoggerModal").modal("show");
+        }
+
+        async function createLoggerRequest(){
+            let selected_option     = document.getElementById("typeLogger");
+            let selected_value      = selected_option.value;
+            let asset_text          = document.getElementById("asset_input").value;
+            let response = await fetch('/create_logger/'+selected_value+'/'+asset_text.replace(/(^\w+:|^)\/\//, ''));
+            if (response.ok) {
+                let json_response = await response.json();
+                let table = document.getElementById('loggersTable');
+                let row = table.insertRow(-1);
+                row.id = json_response.admin_url;
+                row.insertCell(0).innerHTML = '<a href="/view_res/' + json_response.admin_url + '">' + json_response.admin_url + '</a>';
+                row.insertCell(1).innerHTML = document.getElementById("typeLogger").value;
+                row.insertCell(2).innerHTML = document.getElementById("asset_input").value;
+                row.insertCell(3).innerHTML = "<button type='button' class='btn btn-danger' onclick=remove_logger('" + json_response.admin_url + "')>Remove</button>";
+            }else{
+                alert("Failed to create: " + response.statusText);
+            }
+            $("#createLoggerModal").modal("hide");
+        }
+
+        function remove_logger(id) {
+            fetch("/delete_logger/"+id);
+            document.getElementById(id).remove();
+        }
+    </script>
+
+{% endblock %}

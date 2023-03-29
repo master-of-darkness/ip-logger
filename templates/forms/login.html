@@ -1,0 +1,18 @@
+{% extends 'template.html' %}
+{% block title %}log in{% endblock %}
+{% block body %}
+    <form id="loginForm" method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <fieldset class="form-group">
+                <legend class="border-bottom mb-4">Log In</legend>
+                    {{ form }}
+            </fieldset>
+                <button type="submit" class="btn btn-primary">Log in</button>
+    </form>
+    {% if error_type != '' %}
+        <hr>
+        <div class="alert alert-danger" role="alert">
+            {{ error_type }}
+        </div>
+    {% endif %}
+{% endblock %}g

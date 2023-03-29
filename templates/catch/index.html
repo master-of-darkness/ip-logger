@@ -1,0 +1,7 @@
+{% extends 'template.html' %}
+{% block title %}{{ print_info }}{% endblock %}
+{% autoescape off %}
+    {% block body %}
+        <h1 class="align-middle">{{ print_info }}</h1>
+    {% endblock %}
+{% endautoescape %}
